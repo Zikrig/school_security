@@ -170,8 +170,7 @@ def format_stats_report(data: dict[str, Any]) -> str:
         f"  с результатом: {data['search_hits']}\n"
         f"  без результата: {data['search_misses']}\n\n"
         f"Входов в админ-панель: {data['admin_panel_opens']}\n\n"
-        "Топ подтем (callback):\n"
-        f"{top_lines}"
+
     )
 
 
