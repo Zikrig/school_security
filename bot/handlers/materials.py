@@ -1,6 +1,6 @@
 from vkbottle import BaseStateGroup, GroupEventType
 from vkbottle.bot import Bot, Message, MessageEvent
-from vkbottle.dispatch import rules
+from vkbottle.dispatch.rules.base import PayloadContainsRule
 
 from bot.data.materials import KEYWORDS, MATERIALS
 from bot.keyboards.category_menu import get_category_keyboard
@@ -27,7 +27,7 @@ def setup(bot: Bot) -> None:
     @bot.on.raw_event(
         GroupEventType.MESSAGE_EVENT,
         MessageEvent,
-        rules.PayloadContainsRule({"cmd": "sub"}),
+        PayloadContainsRule({"cmd": "sub"}),
     )
     async def handle_subtopic(event: MessageEvent):
         pl = event.payload or {}
