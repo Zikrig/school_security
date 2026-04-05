@@ -1,130 +1,119 @@
-from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
-from aiogram.filters import StateFilter
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
+from vkbottle import BaseStateGroup, GroupEventType
+from vkbottle.bot import Bot, Message, MessageEvent
+from vkbottle.dispatch import rules
 
-from bot.data.materials import MATERIALS, KEYWORDS
-from bot.keyboards.main_menu import get_main_keyboard, get_back_keyboard
+from bot.data.materials import KEYWORDS, MATERIALS
 from bot.keyboards.category_menu import get_category_keyboard
+from bot.keyboards.main_menu import get_back_keyboard, get_main_keyboard
 
-router = Router()
 
-class SearchState(StatesGroup):
-    waiting_for_keyword = State()
+class SearchState(BaseStateGroup):
+    WAITING_KEYWORD = "waiting_keyword"
 
-    
-@router.callback_query(F.data.startswith("sub_"))
-async def handle_subtopic(callback: CallbackQuery):
-    data_parts = callback.data.split("_")
-    await callback.answer(f"DEBUG: data_parts={data_parts}")
-    if len(data_parts) != 3:
-        await callback.answer("Ошибка запроса (len!=3)")
-        return
-    
-    category = data_parts[1]
-    subtopic = data_parts[2]
-    await callback.answer(f"DEBUG: category={category}, subtopic={subtopic}")
-    
-    if category not in MATERIALS:
-        await callback.answer(f"DEBUG: category '{category}' not in MATERIALS")
-        await callback.answer("Раздел не найден (category)")
-        return
-    if subtopic not in MATERIALS[category]["subtopics"]:
-        await callback.answer(f"DEBUG: subtopic '{subtopic}' not in MATERIALS[{category}]['subtopics']")
-        await callback.answer("Раздел не найден (subtopic)")
-        return
-    
-    material = MATERIALS[category]["subtopics"][subtopic]
-    
-    await callback.message.edit_text(
-        f"<b>{material['title']}</b>\n\n{material['content']}\n\n"
-        f"Единый номер экстренных служб 112\nПолиция 02, 102",
-        parse_mode="HTML",
-        reply_markup=get_category_keyboard(category)
+
+def _footer() -> str:
+    return "\n\nЕдиный номер экстренных служб 112\nПолиция 02, 102"
+
+
+def _intro_block(material: dict) -> str:
+    return f"{material['title']}\n\n{material['content'].strip()}"
+
+
+def _full_material_text(material: dict) -> str:
+    return _intro_block(material) + _footer()
+
+
+def setup(bot: Bot) -> None:
+    @bot.on.raw_event(
+        GroupEventType.MESSAGE_EVENT,
+        MessageEvent,
+        rules.PayloadContainsRule({"cmd": "sub"}),
     )
-    await callback.answer()
-    
-    
-@router.message(F.text == "👶 Памятка для детей")
-async def children_materials(message: Message):
-    material = MATERIALS["children"]
-    await message.answer(
-        f"<b>{material['title']}</b>\n\n{material['content']}\n\nВыберите подтему:",
-        parse_mode="HTML",
-        reply_markup=get_category_keyboard("children")
-    )
-
-@router.message(F.text == "👨‍💼 Памятка для взрослых")
-async def adults_materials(message: Message):
-    material = MATERIALS["adults"]
-    await message.answer(
-        f"<b>{material['title']}</b>\n\n{material['content']}\n\nВыберите подтему:",
-        parse_mode="HTML",
-        reply_markup=get_category_keyboard("adults")
-    )
-
-@router.message(F.text == "👵 Памятка для пенсионеров")
-async def pensioners_materials(message: Message):
-    material = MATERIALS["pensioners"]
-    await message.answer(
-        f"<b>{material['title']}</b>\n\n{material['content']}\n\nВыберите подтему:",
-        parse_mode="HTML",
-        reply_markup=get_category_keyboard("pensioners")
-    )
-
-@router.message(F.text == "🔍 Поиск по ключевым словам")
-async def search_info(message: Message, state: FSMContext):
-    await message.answer(
-        "Введите ключевое слово для поиска информации (например: банк, мэш, пенсия):",
-        reply_markup=get_back_keyboard()
-    )
-    await state.set_state(SearchState.waiting_for_keyword)
-
-@router.message(SearchState.waiting_for_keyword)
-async def handle_search(message: Message, state: FSMContext):
-    user_text = message.text.lower()
-    
-    # Поиск по ключевым словам
-    found = False
-    for keyword, data in KEYWORDS.items():
-        if keyword in user_text:
-            category = data["category"]
-            subtopic = data["subtopic"]
-            material = MATERIALS[category]["subtopics"][subtopic]
-            
-            await message.answer(
-                f"<b>Найдено по запросу '{user_text}':</b>\n\n"
-                f"<b>{material['title']}</b>\n\n{material['content']}\n\n"
-                f"Единый номер экстренных служб 112\nПолиция 02, 102",
-                parse_mode="HTML",
-                reply_markup=get_back_keyboard()
-            )
-            found = True
-            break
-    
-    if not found:
-        await message.answer(
-            "По вашему запросу ничего не найдено. Попробуйте другие ключевые слова.",
-            reply_markup=get_back_keyboard()
+    async def handle_subtopic(event: MessageEvent):
+        pl = event.payload or {}
+        category = pl.get("c")
+        subtopic = pl.get("s")
+        if not isinstance(category, str) or not isinstance(subtopic, str):
+            await event.send_empty_answer()
+            return
+        if category not in MATERIALS:
+            await event.show_snackbar("Раздел не найден")
+            return
+        if subtopic not in MATERIALS[category]["subtopics"]:
+            await event.show_snackbar("Подтема не найдена")
+            return
+        material = MATERIALS[category]["subtopics"][subtopic]
+        text = _full_material_text(material)
+        await event.edit_message(
+            message=text,
+            keyboard=get_category_keyboard(category),
         )
-    
-    await state.clear()
-    
+        await event.send_empty_answer()
 
+    @bot.on.message(text="👶 Памятка для детей")
+    async def children_materials(message: Message):
+        await bot.state_dispenser.delete(message.peer_id)
+        material = MATERIALS["children"]
+        await message.answer(
+            f"{_intro_block(material)}\n\nВыберите подтему:",
+            keyboard=get_category_keyboard("children"),
+        )
 
-    
-@router.message(F.text == "⬅️ Назад к категориям")
-async def back_to_categories(message: Message):
-    await message.answer(
-        "Главное меню:",
-        reply_markup=get_main_keyboard()
-    )
+    @bot.on.message(text="👨‍💼 Памятка для взрослых")
+    async def adults_materials(message: Message):
+        await bot.state_dispenser.delete(message.peer_id)
+        material = MATERIALS["adults"]
+        await message.answer(
+            f"{_intro_block(material)}\n\nВыберите подтему:",
+            keyboard=get_category_keyboard("adults"),
+        )
 
-@router.message(F.text == "🏠 На главную")
-async def back_to_main_menu(message: Message):
-    await message.answer(
-        "Главное меню:",
-        reply_markup=get_main_keyboard()
-    )
+    @bot.on.message(text="👵 Памятка для пенсионеров")
+    async def pensioners_materials(message: Message):
+        await bot.state_dispenser.delete(message.peer_id)
+        material = MATERIALS["pensioners"]
+        await message.answer(
+            f"{_intro_block(material)}\n\nВыберите подтему:",
+            keyboard=get_category_keyboard("pensioners"),
+        )
 
+    @bot.on.message(text="🔍 Поиск по ключевым словам")
+    async def search_info(message: Message):
+        await bot.state_dispenser.set(message.peer_id, SearchState.WAITING_KEYWORD)
+        await message.answer(
+            "Введите ключевое слово для поиска информации (например: банк, мэш, пенсия):",
+            keyboard=get_back_keyboard(),
+        )
+
+    @bot.on.message(text="⬅️ Назад к категориям")
+    async def back_to_categories(message: Message):
+        await bot.state_dispenser.delete(message.peer_id)
+        await message.answer("Главное меню:", keyboard=get_main_keyboard())
+
+    @bot.on.message(text="🏠 На главную")
+    async def back_to_main_menu(message: Message):
+        await bot.state_dispenser.delete(message.peer_id)
+        await message.answer("Главное меню:", keyboard=get_main_keyboard())
+
+    @bot.on.message(state=SearchState.WAITING_KEYWORD)
+    async def handle_search(message: Message):
+        raw = message.text or ""
+        user_text = raw.lower()
+        found = False
+        for keyword, data in KEYWORDS.items():
+            if keyword in user_text:
+                category = data["category"]
+                subtopic = data["subtopic"]
+                material = MATERIALS[category]["subtopics"][subtopic]
+                await message.answer(
+                    f"Найдено по запросу «{raw}»:\n\n{_full_material_text(material)}",
+                    keyboard=get_back_keyboard(),
+                )
+                found = True
+                break
+        if not found:
+            await message.answer(
+                "По вашему запросу ничего не найдено. Попробуйте другие ключевые слова.",
+                keyboard=get_back_keyboard(),
+            )
+        await bot.state_dispenser.delete(message.peer_id)

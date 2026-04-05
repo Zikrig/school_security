@@ -1,34 +1,37 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from vkbottle import Keyboard, Text
 
-def get_main_keyboard():
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="👶 Памятка для детей")],
-            [KeyboardButton(text="👨‍💼 Памятка для взрослых")],
-            [KeyboardButton(text="👵 Памятка для пенсионеров")],
-            [KeyboardButton(text="🔍 Поиск по ключевым словам")]
-        ],
-        resize_keyboard=True
-    )
-    return keyboard
 
-def get_back_keyboard():
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="⬅️ Назад к категориям")],
-            [KeyboardButton(text="🏠 На главную")]
-        ],
-        resize_keyboard=True
+def get_main_keyboard() -> str:
+    return (
+        Keyboard(one_time=False)
+        .add(Text("👶 Памятка для детей"))
+        .row()
+        .add(Text("👨‍💼 Памятка для взрослых"))
+        .row()
+        .add(Text("👵 Памятка для пенсионеров"))
+        .row()
+        .add(Text("🔍 Поиск по ключевым словам"))
+        .get_json()
     )
-    return keyboard
 
-def get_admin_keyboard():
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="📊 Статистика")],
-            [KeyboardButton(text="🔑 Список ключевых слов")],
-            [KeyboardButton(text="⬅️ На главную")]
-        ],
-        resize_keyboard=True
+
+def get_back_keyboard() -> str:
+    return (
+        Keyboard(one_time=False)
+        .add(Text("⬅️ Назад к категориям"))
+        .row()
+        .add(Text("🏠 На главную"))
+        .get_json()
     )
-    return keyboard
+
+
+def get_admin_keyboard() -> str:
+    return (
+        Keyboard(one_time=False)
+        .add(Text("📊 Статистика"))
+        .row()
+        .add(Text("🔑 Список ключевых слов"))
+        .row()
+        .add(Text("⬅️ На главную"))
+        .get_json()
+    )

@@ -1,12 +1,19 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from vkbottle import Callback, Keyboard
+
 from bot.data.materials import MATERIALS
 
-def get_category_keyboard(category):
-    keyboard = []
+
+def get_category_keyboard(category: str) -> str:
+    kb = Keyboard(one_time=False, inline=True)
+    first = True
     for key, value in MATERIALS[category]["subtopics"].items():
-        keyboard.append([InlineKeyboardButton(
-            text=value["title"], 
-            callback_data=f"sub_{category}_{key}"
-        )])
-    
-    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+        if not first:
+            kb.row()
+        first = False
+        kb.add(
+            Callback(
+                value["title"],
+                payload={"cmd": "sub", "c": category, "s": key},
+            )
+        )
+    return kb.get_json()

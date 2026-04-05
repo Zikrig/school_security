@@ -1,24 +1,25 @@
-import asyncio
 import logging
-from aiogram import Bot, Dispatcher
+import sys
 
-from bot.config import BOT_TOKEN
+from vkbottle.bot import Bot
 
-# Настройка логирования
+from bot.config import VK_GROUP_TOKEN
+from bot.handlers import admin, materials, start
+
 logging.basicConfig(level=logging.INFO)
-from bot.handlers import start, materials, admin
 
-# Инициализация бота и диспетчера
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
 
-# Регистрация роутеров
-dp.include_router(materials.router)
-dp.include_router(start.router)
-dp.include_router(admin.router)
+def main() -> None:
+    if not VK_GROUP_TOKEN:
+        logging.error("Задайте VK_GROUP_TOKEN в окружении или .env")
+        sys.exit(1)
 
-async def main():
-    await dp.start_polling(bot)
+    bot = Bot(VK_GROUP_TOKEN)
+    start.setup(bot)
+    materials.setup(bot)
+    admin.setup(bot)
+    bot.run_forever()
+
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

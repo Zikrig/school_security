@@ -1,15 +1,15 @@
-from aiogram import Router, F
-from aiogram.types import Message
-from aiogram.filters import CommandStart
+from vkbottle.bot import Bot, Message
 
 from bot.keyboards.main_menu import get_main_keyboard
 
-router = Router()
+_START_TEXTS = ("/start", "start", "Начать", "начать")
 
-@router.message(CommandStart())
-async def cmd_start(message: Message):
-    await message.answer(
-        "Добро пожаловать! Я бот информационной безопасности.\n\n"
-        "Выберите нужный раздел:",
-        reply_markup=get_main_keyboard()
-    )
+
+def setup(bot: Bot) -> None:
+    @bot.on.message(text=list(_START_TEXTS))
+    async def cmd_start(message: Message):
+        await message.answer(
+            "Добро пожаловать! Я бот информационной безопасности.\n\n"
+            "Выберите нужный раздел:",
+            keyboard=get_main_keyboard(),
+        )
