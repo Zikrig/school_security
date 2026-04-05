@@ -1,2 +1,4 @@
 **/__pycache__/
 .env
+bot/data/stats.json
+bot/data/stats.json.tmp

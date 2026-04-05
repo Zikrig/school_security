@@ -4,6 +4,7 @@ from bot.config import ADMIN_IDS
 from bot.data.materials import KEYWORDS
 from bot.keyboards.main_menu import get_admin_keyboard, get_main_keyboard
 from bot.state_helpers import clear_peer_state
+from bot.stats_store import format_stats_report, load_stats, record_admin_panel
 
 
 def setup(bot: Bot) -> None:
@@ -12,6 +13,7 @@ def setup(bot: Bot) -> None:
         if message.from_id not in ADMIN_IDS:
             await message.answer("У вас нет доступа к панели администратора.")
             return
+        await record_admin_panel(message.from_id)
         await message.answer("Панель администратора", keyboard=get_admin_keyboard())
 
     @bot.on.message(text="🔑 Список ключевых слов")
@@ -27,7 +29,8 @@ def setup(bot: Bot) -> None:
     async def show_stats(message: Message):
         if message.from_id not in ADMIN_IDS:
             return
-        await message.answer("Статистика в этой версии бота не собирается.")
+        data = await load_stats()
+        await message.answer(format_stats_report(data))
 
     @bot.on.message(text="⬅️ На главную")
     async def back_to_main(message: Message):

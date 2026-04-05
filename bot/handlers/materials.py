@@ -6,6 +6,12 @@ from bot.data.materials import KEYWORDS, MATERIALS
 from bot.keyboards.category_menu import get_category_keyboard
 from bot.keyboards.main_menu import get_back_keyboard, get_main_keyboard
 from bot.state_helpers import clear_peer_state
+from bot.stats_store import (
+    record_category_open,
+    record_search_query,
+    record_search_session,
+    record_subtopic_open,
+)
 
 
 class SearchState(BaseStateGroup):
@@ -49,11 +55,13 @@ def setup(bot: Bot) -> None:
             message=text,
             keyboard=get_category_keyboard(category),
         )
+        await record_subtopic_open(event.user_id, category, subtopic)
         await event.send_empty_answer()
 
     @bot.on.message(text="👶 Памятка для детей")
     async def children_materials(message: Message):
         await clear_peer_state(bot.state_dispenser, message.peer_id)
+        await record_category_open(message.from_id, "children")
         material = MATERIALS["children"]
         await message.answer(
             f"{_intro_block(material)}\n\nВыберите подтему:",
@@ -63,6 +71,7 @@ def setup(bot: Bot) -> None:
     @bot.on.message(text="👨‍💼 Памятка для взрослых")
     async def adults_materials(message: Message):
         await clear_peer_state(bot.state_dispenser, message.peer_id)
+        await record_category_open(message.from_id, "adults")
         material = MATERIALS["adults"]
         await message.answer(
             f"{_intro_block(material)}\n\nВыберите подтему:",
@@ -72,6 +81,7 @@ def setup(bot: Bot) -> None:
     @bot.on.message(text="👵 Памятка для пенсионеров")
     async def pensioners_materials(message: Message):
         await clear_peer_state(bot.state_dispenser, message.peer_id)
+        await record_category_open(message.from_id, "pensioners")
         material = MATERIALS["pensioners"]
         await message.answer(
             f"{_intro_block(material)}\n\nВыберите подтему:",
@@ -81,6 +91,7 @@ def setup(bot: Bot) -> None:
     @bot.on.message(text="🔍 Поиск по ключевым словам")
     async def search_info(message: Message):
         await bot.state_dispenser.set(message.peer_id, SearchState.WAITING_KEYWORD)
+        await record_search_session(message.from_id)
         await message.answer(
             "Введите ключевое слово для поиска информации (например: банк, мэш, пенсия):",
             keyboard=get_back_keyboard(),
@@ -117,4 +128,5 @@ def setup(bot: Bot) -> None:
                 "По вашему запросу ничего не найдено. Попробуйте другие ключевые слова.",
                 keyboard=get_back_keyboard(),
             )
+        await record_search_query(message.from_id, found)
         await clear_peer_state(bot.state_dispenser, message.peer_id)
