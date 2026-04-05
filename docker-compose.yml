@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  safety-bot:
+    build: .
+    container_name: safety_bot
+    restart: unless-stopped
+    environment:
+      - VK_GROUP_TOKEN=${VK_GROUP_TOKEN}
+      - ADMIN_IDS=${ADMIN_IDS}
+    volumes:
+      - .:/app
