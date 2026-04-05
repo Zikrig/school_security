@@ -3,6 +3,7 @@ from vkbottle.bot import Bot, Message
 from bot.config import ADMIN_IDS
 from bot.data.materials import KEYWORDS
 from bot.keyboards.main_menu import get_admin_keyboard, get_main_keyboard
+from bot.state_helpers import clear_peer_state
 
 
 def setup(bot: Bot) -> None:
@@ -32,5 +33,5 @@ def setup(bot: Bot) -> None:
     async def back_to_main(message: Message):
         if message.from_id not in ADMIN_IDS:
             return
-        await bot.state_dispenser.delete(message.peer_id)
+        await clear_peer_state(bot.state_dispenser, message.peer_id)
         await message.answer("Главное меню:", keyboard=get_main_keyboard())

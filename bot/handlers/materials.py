@@ -5,6 +5,7 @@ from vkbottle.dispatch.rules.base import PayloadContainsRule
 from bot.data.materials import KEYWORDS, MATERIALS
 from bot.keyboards.category_menu import get_category_keyboard
 from bot.keyboards.main_menu import get_back_keyboard, get_main_keyboard
+from bot.state_helpers import clear_peer_state
 
 
 class SearchState(BaseStateGroup):
@@ -52,7 +53,7 @@ def setup(bot: Bot) -> None:
 
     @bot.on.message(text="👶 Памятка для детей")
     async def children_materials(message: Message):
-        await bot.state_dispenser.delete(message.peer_id)
+        await clear_peer_state(bot.state_dispenser, message.peer_id)
         material = MATERIALS["children"]
         await message.answer(
             f"{_intro_block(material)}\n\nВыберите подтему:",
@@ -61,7 +62,7 @@ def setup(bot: Bot) -> None:
 
     @bot.on.message(text="👨‍💼 Памятка для взрослых")
     async def adults_materials(message: Message):
-        await bot.state_dispenser.delete(message.peer_id)
+        await clear_peer_state(bot.state_dispenser, message.peer_id)
         material = MATERIALS["adults"]
         await message.answer(
             f"{_intro_block(material)}\n\nВыберите подтему:",
@@ -70,7 +71,7 @@ def setup(bot: Bot) -> None:
 
     @bot.on.message(text="👵 Памятка для пенсионеров")
     async def pensioners_materials(message: Message):
-        await bot.state_dispenser.delete(message.peer_id)
+        await clear_peer_state(bot.state_dispenser, message.peer_id)
         material = MATERIALS["pensioners"]
         await message.answer(
             f"{_intro_block(material)}\n\nВыберите подтему:",
@@ -87,12 +88,12 @@ def setup(bot: Bot) -> None:
 
     @bot.on.message(text="⬅️ Назад к категориям")
     async def back_to_categories(message: Message):
-        await bot.state_dispenser.delete(message.peer_id)
+        await clear_peer_state(bot.state_dispenser, message.peer_id)
         await message.answer("Главное меню:", keyboard=get_main_keyboard())
 
     @bot.on.message(text="🏠 На главную")
     async def back_to_main_menu(message: Message):
-        await bot.state_dispenser.delete(message.peer_id)
+        await clear_peer_state(bot.state_dispenser, message.peer_id)
         await message.answer("Главное меню:", keyboard=get_main_keyboard())
 
     @bot.on.message(state=SearchState.WAITING_KEYWORD)
@@ -116,4 +117,4 @@ def setup(bot: Bot) -> None:
                 "По вашему запросу ничего не найдено. Попробуйте другие ключевые слова.",
                 keyboard=get_back_keyboard(),
             )
-        await bot.state_dispenser.delete(message.peer_id)
+        await clear_peer_state(bot.state_dispenser, message.peer_id)
